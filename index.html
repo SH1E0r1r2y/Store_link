@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>剪存 · 個人網頁收藏</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2A251D">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EAE6D9;
+    --paper-deep:#DFDAC8;
+    --card:#FBF9F2;
+    --ink:#2A251D;
+    --ink-soft:#6B6153;
+    --line:#D3CBB4;
+    --amber:#B27B2E;
+    --amber-soft:#EFDFC0;
+    --sage:#57634F;
+    --sage-soft:#DFE6D4;
+    --rust:#9C4A3B;
+    --shadow: 0 1px 0 rgba(42,37,29,0.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(42,37,29,0.05) 1px, transparent 1.6px);
+    background-size: 14px 14px;
+    color:var(--ink);
+    font-family:"Noto Sans TC", "PingFang TC", sans-serif;
+    min-height:100vh;
+  }
+  .app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:transparent;}
+
+  /* Header */
+  header{padding:28px 20px 14px; position:sticky; top:0; z-index:20; background:var(--paper); border-bottom:1px solid var(--line);}
+  .brand{display:flex; align-items:baseline; justify-content:space-between; gap:12px;}
+  .brand h1{font-family:"Noto Serif TC", serif; font-weight:700; font-size:26px; margin:0; letter-spacing:1px;}
+  .brand .count{font-size:12px; color:var(--ink-soft); font-variant-numeric:tabular-nums;}
+  .subtitle{margin:4px 0 16px; font-size:13px; color:var(--ink-soft);}
+
+  .searchrow{display:flex; gap:8px; align-items:center;}
+  .searchbox{flex:1; position:relative;}
+  .searchbox input{
+    width:100%; padding:11px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--card); font-size:14px; color:var(--ink); font-family:inherit;
+  }
+  .searchbox input:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .ai-toggle{
+    display:flex; align-items:center; gap:6px; padding:10px 13px; border-radius:10px;
+    background:var(--ink); color:var(--paper); font-size:13px; font-weight:500; border:none; cursor:pointer;
+    white-space:nowrap; transition:transform .12s ease;
+  }
+  .ai-toggle.active{background:var(--amber); color:#241a08;}
+  .ai-toggle:active{transform:scale(0.96);}
+
+  .ai-panel{margin-top:10px; display:none;}
+  .ai-panel.show{display:block;}
+  .ai-panel .hint{font-size:12px; color:var(--ink-soft); margin:6px 2px 10px;}
+  .ai-answer{
+    margin-top:10px; padding:12px 14px; background:var(--amber-soft); border-radius:10px;
+    border:1px dashed var(--amber); font-size:13px; line-height:1.6; color:#3d2c0f; display:none;
+  }
+  .ai-answer.show{display:block;}
+  .ai-loading{font-size:13px; color:var(--ink-soft); display:none; padding:8px 2px;}
+  .ai-loading.show{display:flex; align-items:center; gap:8px;}
+  .spinner{width:14px; height:14px; border:2px solid var(--line); border-top-color:var(--amber); border-radius:50%; animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* Category rail */
+  .rail{display:flex; gap:8px; padding:12px 20px; overflow-x:auto; background:var(--paper); border-bottom:1px solid var(--line);}
+  .rail::-webkit-scrollbar{display:none;}
+  .chip{
+    flex:0 0 auto; padding:7px 13px; border-radius:999px; font-size:13px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink-soft); cursor:pointer; white-space:nowrap;
+  }
+  .chip.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .chip .n{opacity:.6; margin-left:3px;}
+  .chip.manage{border-style:dashed; color:var(--amber);}
+
+  /* List */
+  main{flex:1; padding:16px 20px 100px;}
+  .empty{text-align:center; padding:60px 20px; color:var(--ink-soft);}
+  .empty .glyph{font-size:34px; margin-bottom:10px; font-family:"Noto Serif TC",serif;}
+  .empty p{font-size:13px; line-height:1.7; margin:4px 0 0;}
+
+  .card{
+    background:var(--card); border-radius:12px; padding:16px; margin-bottom:12px;
+    border:1px solid var(--line); box-shadow:var(--shadow); position:relative;
+  }
+  .card.matched{border-color:var(--amber); box-shadow:0 0 0 2px var(--amber-soft);}
+  .card-top{display:flex; gap:10px; align-items:flex-start;}
+  .favicon{width:28px; height:28px; border-radius:7px; background:var(--paper-deep); flex:0 0 28px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-top:2px;}
+  .favicon img{width:16px; height:16px;}
+  .card-body{flex:1; min-width:0;}
+  .card-title{font-family:"Noto Serif TC", serif; font-weight:700; font-size:15.5px; line-height:1.4; margin:0 0 3px; word-break:break-word;}
+  .card-url{font-size:11.5px; color:var(--ink-soft); word-break:break-all; margin:0;}
+  .card-note{margin:10px 0 0; font-size:13.5px; line-height:1.65; color:#4a4234; white-space:pre-wrap; word-break:break-word;}
+  .card-tags{display:flex; gap:6px; margin-top:11px; flex-wrap:wrap;}
+  .tag{font-size:11px; padding:3px 9px; border-radius:999px; font-weight:500;}
+  .tag.cat{background:var(--sage-soft); color:var(--sage);}
+  .tag.sub{background:var(--amber-soft); color:var(--amber);}
+  .card-actions{display:flex; gap:14px; margin-top:12px; padding-top:10px; border-top:1px dashed var(--line);}
+  .card-actions button{background:none; border:none; font-size:12px; color:var(--ink-soft); cursor:pointer; padding:2px 0; font-family:inherit;}
+  .card-actions button.open{color:var(--amber); font-weight:500;}
+  .card-actions button.del{color:var(--rust);}
+  .ai-why{margin-top:9px; font-size:12px; color:var(--amber); background:var(--amber-soft); padding:7px 10px; border-radius:8px; line-height:1.5;}
+
+  /* FAB */
+  .fab{
+    position:fixed; bottom:26px; left:50%; transform:translateX(calc(-50% + 210px));
+    width:54px; height:54px; border-radius:16px; background:var(--ink); color:var(--paper);
+    border:none; font-size:26px; cursor:pointer; box-shadow:0 6px 16px rgba(42,37,29,0.35);
+    display:flex; align-items:center; justify-content:center; z-index:30;
+  }
+  .fab:active{transform:translateX(calc(-50% + 210px)) scale(0.93);}
+  @media (max-width:520px){ .fab{ right:20px; left:auto; transform:none;} .fab:active{transform:scale(0.93);} }
+
+  /* Settings link */
+  .settingsbar{display:flex; justify-content:center; gap:18px; padding:14px 20px 30px; font-size:12px; color:var(--ink-soft);}
+  .settingsbar button{background:none; border:none; color:var(--ink-soft); font-size:12px; text-decoration:underline; cursor:pointer; font-family:inherit;}
+
+  /* Modal */
+  .overlay{position:fixed; inset:0; background:rgba(24,20,14,0.5); display:none; align-items:flex-end; z-index:100;}
+  .overlay.show{display:flex;}
+  @media (min-width:560px){ .overlay{align-items:center; justify-content:center;} }
+  .sheet{
+    background:var(--paper); width:100%; max-width:520px; max-height:88vh; overflow-y:auto;
+    border-radius:18px 18px 0 0; padding:22px 20px 28px; animation:slideup .22s ease;
+  }
+  @media (min-width:560px){ .sheet{border-radius:16px; max-height:80vh;} }
+  @keyframes slideup{from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  .sheet h2{font-family:"Noto Serif TC",serif; font-size:19px; margin:0 0 18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px; font-weight:500;}
+  .field input, .field textarea, .field select{
+    width:100%; padding:10px 12px; border-radius:9px; border:1px solid var(--line);
+    background:var(--card); font-size:14px; color:var(--ink); font-family:inherit;
+  }
+  .field textarea{min-height:80px; resize:vertical; line-height:1.6;}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  .fetch-status{font-size:11.5px; color:var(--ink-soft); margin-top:5px;}
+  .btnrow{display:flex; gap:10px; margin-top:20px;}
+  .btn{flex:1; padding:12px; border-radius:10px; border:none; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;}
+  .btn.primary{background:var(--ink); color:var(--paper);}
+  .btn.ghost{background:none; border:1px solid var(--line); color:var(--ink-soft);}
+  .btn.danger{background:var(--rust); color:#fff;}
+
+  .catlist{display:flex; flex-direction:column; gap:8px; margin-bottom:16px;}
+  .catrow{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:var(--card); border-radius:9px; border:1px solid var(--line);}
+  .catrow .name{font-size:14px; font-weight:500;}
+  .catrow .sub-list{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .catrow button{background:none; border:none; color:var(--rust); font-size:12px; cursor:pointer;}
+  .addrow{display:flex; gap:8px;}
+  .addrow input{flex:1;}
+  .addrow button{padding:0 16px; border-radius:9px; border:none; background:var(--amber); color:#241a08; font-weight:600; cursor:pointer;}
+
+  .subchipwrap{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .subchip{font-size:11px; padding:4px 9px; background:var(--sage-soft); color:var(--sage); border-radius:999px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <h1>剪存</h1>
+      <span class="count" id="countLabel">0 則收藏</span>
+    </div>
+    <p class="subtitle">存下網頁與心得,分類收好,隨手就能找回來</p>
+    <div class="searchrow">
+      <div class="searchbox">
+        <input id="searchInput" type="text" placeholder="搜尋標題、心得、網址或分類…" oninput="onSearchInput()">
+      </div>
+    </div>
+  </header>
+
+  <div class="rail" id="categoryRail"></div>
+
+  <main id="listArea"></main>
+
+  <button class="fab" onclick="openAddModal()">+</button>
+
+  <div class="settingsbar">
+    <button onclick="openCatManager()">管理分類</button>
+    <button onclick="exportData()">匯出備份</button>
+    <button onclick="document.getElementById('importFile').click()">匯入備份</button>
+  </div>
+  <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
+</div>
+
+<!-- Add/Edit link modal -->
+<div class="overlay" id="linkOverlay">
+  <div class="sheet">
+    <h2 id="linkModalTitle">新增收藏</h2>
+    <div class="field">
+      <label>網址</label>
+      <input id="f_url" type="url" placeholder="https://..." oninput="onUrlInput()">
+      <div class="fetch-status" id="fetchStatus"></div>
+    </div>
+    <div class="field">
+      <label>標題</label>
+      <input id="f_title" type="text" placeholder="網頁標題">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>分類</label>
+        <select id="f_cat" onchange="onCatSelectChange()"></select>
+      </div>
+      <div class="field">
+        <label>子分類</label>
+        <select id="f_sub"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>心得 / 筆記</label>
+      <textarea id="f_note" placeholder="寫下你的想法、重點、之後想做什麼…"></textarea>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" onclick="closeLinkModal()">取消</button>
+      <button class="btn primary" onclick="saveLink()">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category manager modal -->
+<div class="overlay" id="catOverlay">
+  <div class="sheet">
+    <h2>管理分類</h2>
+    <div class="catlist" id="catManagerList"></div>
+    <div class="addrow">
+      <input id="newCatName" type="text" placeholder="新增大分類名稱…">
+      <button onclick="addCategory()">新增</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" onclick="closeCatManager()">完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- Subcategory editor modal -->
+<div class="overlay" id="subOverlay">
+  <div class="sheet">
+    <h2 id="subModalTitle">子分類</h2>
+    <div class="catlist" id="subManagerList"></div>
+    <div class="addrow">
+      <input id="newSubName" type="text" placeholder="新增子分類名稱…">
+      <button onclick="addSubcategory()">新增</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn ghost" onclick="closeSubManager()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- State ----------
+let categories = []; // [{id,name,subs:[{id,name}]}]
+let links = [];       // [{id,url,title,note,favicon,catId,subId,createdAt}]
+let currentFilterCat = 'all';
+let currentFilterSub = null;
+let editingLinkId = null;
+let editingCatIdForSub = null;
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+// ---------- Storage (localStorage — data stays on this device/browser only) ----------
+const LS_CAT = 'jiancun:categories';
+const LS_LINKS = 'jiancun:links';
+
+async function loadData(){
+  try{
+    const c = localStorage.getItem(LS_CAT);
+    categories = c ? JSON.parse(c) : defaultCategories();
+  }catch(e){ categories = defaultCategories(); }
+  try{
+    const l = localStorage.getItem(LS_LINKS);
+    links = l ? JSON.parse(l) : [];
+  }catch(e){ links = []; }
+  render();
+  handleIncomingShare();
+}
+function defaultCategories(){
+  return [
+    {id: uid(), name:'工作', subs:[{id:uid(),name:'職場 tips'},{id:uid(),name:'論文'}]},
+    {id: uid(), name:'程式', subs:[{id:uid(),name:'教學'},{id:uid(),name:'工具'}]},
+    {id: uid(), name:'生活', subs:[]},
+  ];
+}
+async function saveCategories(){
+  try{ localStorage.setItem(LS_CAT, JSON.stringify(categories)); }
+  catch(e){ console.error('save categories failed', e); alert('儲存失敗,瀏覽器儲存空間可能已滿。'); }
+}
+async function saveLinks(){
+  try{ localStorage.setItem(LS_LINKS, JSON.stringify(links)); }
+  catch(e){ console.error('save links failed', e); alert('儲存失敗,瀏覽器儲存空間可能已滿。'); }
+}
+
+// ---------- Incoming share (from Android share sheet) ----------
+function handleIncomingShare(){
+  const params = new URLSearchParams(window.location.search);
+  const sharedUrl = params.get('shared_url');
+  const sharedText = params.get('shared_text');
+  const sharedTitle = params.get('shared_title');
+  if(!sharedUrl && !sharedText && !sharedTitle) return;
+
+  // Some apps put the link inside "text" instead of a dedicated "url" field.
+  const urlMatch = (sharedUrl || sharedText || '').match(/https?:\/\/[^\s]+/);
+  const foundUrl = urlMatch ? urlMatch[0] : (sharedUrl || '');
+  const leftoverText = (sharedText || '').replace(foundUrl, '').trim();
+
+  // clean the address bar so a refresh doesn't reopen this
+  history.replaceState(null, '', window.location.pathname);
+
+  openAddModal();
+  if(foundUrl){
+    document.getElementById('f_url').value = foundUrl;
+    onUrlInput();
+  }
+  document.getElementById('f_title').value = sharedTitle || '';
+  document.getElementById('f_note').value = leftoverText || '';
+}
+
+// ---------- Rendering ----------
+function catName(id){ const c = categories.find(x=>x.id===id); return c ? c.name : ''; }
+function subName(catId, subId){
+  const c = categories.find(x=>x.id===catId);
+  if(!c) return '';
+  const s = c.subs.find(x=>x.id===subId);
+  return s ? s.name : '';
+}
+
+function render(){
+  renderRail();
+  renderList();
+  document.getElementById('countLabel').textContent = links.length + ' 則收藏';
+}
+
+function renderRail(){
+  const rail = document.getElementById('categoryRail');
+  let html = `<div class="chip ${currentFilterCat==='all'?'active':''}" onclick="setFilterCat('all')">全部<span class="n">${links.length}</span></div>`;
+  categories.forEach(c=>{
+    const n = links.filter(l=>l.catId===c.id).length;
+    html += `<div class="chip ${currentFilterCat===c.id?'active':''}" onclick="setFilterCat('${c.id}')">${escapeHtml(c.name)}<span class="n">${n}</span></div>`;
+  });
+  html += `<div class="chip manage" onclick="openCatManager()">＋ 分類</div>`;
+  rail.innerHTML = html;
+
+  // sub-rail if a category is selected and has subs
+  if(currentFilterCat!=='all'){
+    const c = categories.find(x=>x.id===currentFilterCat);
+    if(c && c.subs.length){
+      let sub = `<div class="chip ${currentFilterSub===null?'active':''}" onclick="setFilterSub(null)" style="border-style:dotted">全部子分類</div>`;
+      c.subs.forEach(s=>{
+        const n = links.filter(l=>l.catId===c.id && l.subId===s.id).length;
+        sub += `<div class="chip ${currentFilterSub===s.id?'active':''}" onclick="setFilterSub('${s.id}')" style="border-style:dotted">${escapeHtml(s.name)}<span class="n">${n}</span></div>`;
+      });
+      rail.innerHTML += `</div><div class="rail" style="border-top:none; padding-top:0;">${sub}`;
+    }
+  }
+}
+
+function setFilterCat(id){ currentFilterCat = id; currentFilterSub = null; render(); }
+function setFilterSub(id){ currentFilterSub = id; render(); }
+
+function getVisibleLinks(){
+  let arr = links;
+  if(currentFilterCat !== 'all'){
+    arr = arr.filter(l=>l.catId===currentFilterCat);
+    if(currentFilterSub) arr = arr.filter(l=>l.subId===currentFilterSub);
+  }
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if(q){
+    arr = arr.filter(l =>
+      (l.title||'').toLowerCase().includes(q) ||
+      (l.note||'').toLowerCase().includes(q) ||
+      (l.url||'').toLowerCase().includes(q) ||
+      catName(l.catId).toLowerCase().includes(q) ||
+      subName(l.catId, l.subId).toLowerCase().includes(q)
+    );
+  }
+  return arr.slice().sort((a,b)=> b.createdAt - a.createdAt);
+}
+
+function renderList(){
+  const main = document.getElementById('listArea');
+  const arr = getVisibleLinks();
+  if(arr.length===0){
+    main.innerHTML = `<div class="empty"><div class="glyph">﹢</div><p>${links.length===0 ? '還沒有收藏,點右下角新增第一筆' : '找不到符合的收藏'}</p></div>`;
+    return;
+  }
+  main.innerHTML = arr.map(l=>{
+    const domain = safeDomain(l.url);
+    const favicon = l.favicon || (domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : '');
+    return `
+    <div class="card">
+      <div class="card-top">
+        <div class="favicon">${favicon ? `<img src="${favicon}" onerror="this.style.display='none'">` : ''}</div>
+        <div class="card-body">
+          <p class="card-title">${escapeHtml(l.title || domain || l.url)}</p>
+          <p class="card-url">${escapeHtml(domain || l.url)}</p>
+        </div>
+      </div>
+      ${l.note ? `<p class="card-note">${escapeHtml(l.note)}</p>` : ''}
+      <div class="card-tags">
+        ${l.catId ? `<span class="tag cat">${escapeHtml(catName(l.catId))}</span>` : ''}
+        ${l.subId ? `<span class="tag sub">${escapeHtml(subName(l.catId,l.subId))}</span>` : ''}
+      </div>
+      <div class="card-actions">
+        <button class="open" onclick="window.open('${l.url}','_blank')">開啟網頁</button>
+        <button onclick="editLink('${l.id}')">編輯</button>
+        <button class="del" onclick="deleteLink('${l.id}')">刪除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function safeDomain(url){
+  try{ return new URL(url).hostname.replace(/^www\./,''); }catch(e){ return ''; }
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function onSearchInput(){ render(); }
+
+// ---------- Add / Edit link ----------
+function populateCatSelects(){
+  const catSel = document.getElementById('f_cat');
+  catSel.innerHTML = `<option value="">未分類</option>` + categories.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+function onCatSelectChange(){
+  const catId = document.getElementById('f_cat').value;
+  const subSel = document.getElementById('f_sub');
+  const c = categories.find(x=>x.id===catId);
+  if(!c || !c.subs.length){
+    subSel.innerHTML = `<option value="">—</option>`;
+    subSel.disabled = true;
+    return;
+  }
+  subSel.disabled = false;
+  subSel.innerHTML = `<option value="">未選子分類</option>` + c.subs.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+}
+
+function openAddModal(){
+  editingLinkId = null;
+  document.getElementById('linkModalTitle').textContent = '新增收藏';
+  document.getElementById('f_url').value = '';
+  document.getElementById('f_title').value = '';
+  document.getElementById('f_note').value = '';
+  document.getElementById('fetchStatus').textContent = '';
+  populateCatSelects();
+  document.getElementById('f_cat').value = currentFilterCat !== 'all' ? currentFilterCat : '';
+  onCatSelectChange();
+  if(currentFilterSub) document.getElementById('f_sub').value = currentFilterSub;
+  document.getElementById('linkOverlay').classList.add('show');
+  navigator.clipboard && navigator.clipboard.readText().then(t=>{
+    if(t && /^https?:\/\//.test(t.trim()) && !document.getElementById('f_url').value){
+      document.getElementById('f_url').value = t.trim();
+      onUrlInput();
+    }
+  }).catch(()=>{});
+}
+function editLink(id){
+  const l = links.find(x=>x.id===id);
+  if(!l) return;
+  editingLinkId = id;
+  document.getElementById('linkModalTitle').textContent = '編輯收藏';
+  document.getElementById('f_url').value = l.url;
+  document.getElementById('f_title').value = l.title || '';
+  document.getElementById('f_note').value = l.note || '';
+  document.getElementById('fetchStatus').textContent = '';
+  populateCatSelects();
+  document.getElementById('f_cat').value = l.catId || '';
+  onCatSelectChange();
+  document.getElementById('f_sub').value = l.subId || '';
+  document.getElementById('linkOverlay').classList.add('show');
+}
+function closeLinkModal(){ document.getElementById('linkOverlay').classList.remove('show'); }
+
+let urlFetchTimer = null;
+function onUrlInput(){
+  clearTimeout(urlFetchTimer);
+  urlFetchTimer = setTimeout(tryFetchMeta, 500);
+}
+async function tryFetchMeta(){
+  const url = document.getElementById('f_url').value.trim();
+  const status = document.getElementById('fetchStatus');
+  if(!/^https?:\/\//.test(url)){ status.textContent=''; return; }
+  const domain = safeDomain(url);
+  status.textContent = '正在嘗試抓取網頁標題…';
+  try{
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    const res = await fetch(proxyUrl);
+    const html = await res.text();
+    const match = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    if(match && match[1] && !document.getElementById('f_title').value){
+      document.getElementById('f_title').value = match[1].trim().slice(0,140);
+      status.textContent = '已自動抓取標題(可手動修改)· 圖示來自 ' + domain;
+    }else{
+      status.textContent = '圖示已就緒 · 標題請手動輸入(自動抓取失敗)';
+    }
+  }catch(e){
+    status.textContent = '圖示已就緒 · 標題請手動輸入(無法自動抓取此網站)';
+  }
+}
+
+async function saveLink(){
+  const url = document.getElementById('f_url').value.trim();
+  if(!url){ alert('請輸入網址'); return; }
+  const title = document.getElementById('f_title').value.trim();
+  const note = document.getElementById('f_note').value.trim();
+  const catId = document.getElementById('f_cat').value;
+  const subId = document.getElementById('f_sub').value;
+  const domain = safeDomain(url);
+  const favicon = domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : '';
+
+  if(editingLinkId){
+    const l = links.find(x=>x.id===editingLinkId);
+    Object.assign(l, {url, title, note, catId, subId, favicon});
+  }else{
+    links.unshift({id: uid(), url, title, note, catId, subId, favicon, createdAt: Date.now()});
+  }
+  await saveLinks();
+  closeLinkModal();
+  render();
+}
+function deleteLink(id){
+  if(!confirm('確定要刪除這筆收藏嗎?')) return;
+  links = links.filter(x=>x.id!==id);
+  saveLinks();
+  render();
+}
+
+// ---------- Category manager ----------
+function openCatManager(){
+  renderCatManager();
+  document.getElementById('catOverlay').classList.add('show');
+}
+function closeCatManager(){ document.getElementById('catOverlay').classList.remove('show'); render(); }
+function renderCatManager(){
+  const list = document.getElementById('catManagerList');
+  list.innerHTML = categories.map(c=>`
+    <div class="catrow">
+      <div>
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="sub-list">${c.subs.length ? c.subs.map(s=>escapeHtml(s.name)).join('、') : '無子分類'}</div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <button style="color:var(--amber)" onclick="openSubManager('${c.id}')">子分類</button>
+        <button onclick="deleteCategory('${c.id}')">刪除</button>
+      </div>
+    </div>
+  `).join('') || '<p style="font-size:13px;color:var(--ink-soft)">還沒有分類</p>';
+}
+async function addCategory(){
+  const input = document.getElementById('newCatName');
+  const name = input.value.trim();
+  if(!name) return;
+  categories.push({id: uid(), name, subs:[]});
+  input.value = '';
+  await saveCategories();
+  renderCatManager();
+}
+async function deleteCategory(id){
+  const usedCount = links.filter(l=>l.catId===id).length;
+  const msg = usedCount ? `這個分類底下有 ${usedCount} 筆收藏,刪除後會變成未分類。確定刪除嗎?` : '確定要刪除這個分類嗎?';
+  if(!confirm(msg)) return;
+  categories = categories.filter(x=>x.id!==id);
+  links.forEach(l=>{ if(l.catId===id){ l.catId=''; l.subId=''; } });
+  await saveCategories();
+  await saveLinks();
+  renderCatManager();
+}
+function openSubManager(catId){
+  editingCatIdForSub = catId;
+  const c = categories.find(x=>x.id===catId);
+  document.getElementById('subModalTitle').textContent = `「${c.name}」的子分類`;
+  renderSubManager();
+  document.getElementById('subOverlay').classList.add('show');
+}
+function closeSubManager(){ document.getElementById('subOverlay').classList.remove('show'); renderCatManager(); }
+function renderSubManager(){
+  const c = categories.find(x=>x.id===editingCatIdForSub);
+  const list = document.getElementById('subManagerList');
+  list.innerHTML = (c.subs||[]).map(s=>`
+    <div class="catrow">
+      <div class="name">${escapeHtml(s.name)}</div>
+      <button onclick="deleteSubcategory('${s.id}')">刪除</button>
+    </div>
+  `).join('') || '<p style="font-size:13px;color:var(--ink-soft)">還沒有子分類</p>';
+}
+async function addSubcategory(){
+  const input = document.getElementById('newSubName');
+  const name = input.value.trim();
+  if(!name) return;
+  const c = categories.find(x=>x.id===editingCatIdForSub);
+  c.subs.push({id: uid(), name});
+  input.value = '';
+  await saveCategories();
+  renderSubManager();
+}
+async function deleteSubcategory(subId){
+  const c = categories.find(x=>x.id===editingCatIdForSub);
+  c.subs = c.subs.filter(x=>x.id!==subId);
+  links.forEach(l=>{ if(l.catId===c.id && l.subId===subId) l.subId=''; });
+  await saveCategories();
+  await saveLinks();
+  renderSubManager();
+}
+
+// ---------- Backup ----------
+function exportData(){
+  const payload = {categories, links, exportedAt: new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `剪存備份_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+function importData(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try{
+      const payload = JSON.parse(reader.result);
+      if(!confirm(`匯入將會加入 ${payload.links?.length||0} 筆收藏與 ${payload.categories?.length||0} 個分類(不會覆蓋現有資料)。確定嗎?`)) return;
+      const idMap = {};
+      (payload.categories||[]).forEach(c=>{
+        const newId = uid();
+        idMap[c.id] = newId;
+        const subs = (c.subs||[]).map(s=>({id: uid(), name: s.name}));
+        categories.push({id:newId, name:c.name, subs});
+      });
+      (payload.links||[]).forEach(l=>{
+        links.unshift({...l, id: uid(), catId: idMap[l.catId] || '', subId: '', createdAt: l.createdAt || Date.now()});
+      });
+      await saveCategories();
+      await saveLinks();
+      render();
+      alert('匯入完成!');
+    }catch(e){
+      alert('這個檔案格式看起來不對,請確認是「剪存」匯出的備份檔。');
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+// ---------- Init ----------
+loadData();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
